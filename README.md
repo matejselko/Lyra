@@ -52,33 +52,6 @@ npm start
 
 Then open **http://localhost:3000**
 
-## Publishing your own copy
-
-1. Create a new repository on GitHub (lowercase name recommended, e.g. `lyra`).
-2. Upload the project keeping this structure:
-
-   ```
-   lyra/
-   ├── frontend/
-   │   └── index.html
-   ├── backend/
-   │   ├── server.js
-   │   └── package.json
-   ├── .github/
-   │   └── workflows/
-   │       └── docker.yml
-   ├── Dockerfile
-   ├── docker-compose.yml
-   ├── .gitignore
-   ├── .dockerignore
-   └── README.md
-   ```
-
-3. Push to the `main` branch — GitHub Actions builds and publishes automatically to `ghcr.io/<your-username>/<your-repo>:latest`.
-4. Update `docker-compose.yml`, replacing the image name with your own `<username>/<repo>`.
-5. In your GitHub package settings, set the GHCR package visibility to **public** so it can be pulled without authentication — or configure registry credentials on your Docker host if you'd rather keep it private.
-
-> **Note:** GHCR requires lowercase image names. If your repository name contains uppercase letters, the included workflow automatically lowercases it before tagging — no changes needed on your end.
 
 ## How the comparison works
 
