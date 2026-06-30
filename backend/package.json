@@ -1,0 +1,16 @@
+{
+  "name": "lyra-fingerprint-verifier",
+  "version": "1.0.0",
+  "description": "Self-hosted PGP/SSH fingerprint comparison tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
