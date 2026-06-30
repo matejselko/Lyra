@@ -1,6 +1,6 @@
 services:
   lyra:
-    image: ghcr.io/matejselko/lyra-fingerprint:latest
+    image: ghcr.io/matejselko/lyra:latest
     container_name: lyra-fingerprint
     restart: unless-stopped
     ports:
