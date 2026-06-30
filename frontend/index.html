@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lyra — Fingerprint Verifier</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23a78bfa'/%3E%3Cellipse cx='16' cy='16' rx='10' ry='4' fill='none' stroke='%23a78bfa' stroke-width='1.5' opacity='.7' transform='rotate(-30 16 16)'/%3E%3Cellipse cx='16' cy='16' rx='7' ry='2.5' fill='none' stroke='%23818cf8' stroke-width='1' opacity='.5' transform='rotate(60 16 16)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --dim:rgba(255,255,255,.5);--faint:rgba(255,255,255,.2);--fainter:rgba(255,255,255,.07);
+  --glass:rgba(255,255,255,.08);--gb:rgba(255,255,255,.14);
+  --green:#34d399;--green-dim:rgba(52,211,153,.5);
+  --red:#ff6b6b;--red-dim:rgba(255,107,107,.5);
+}
+html,body{height:100%;background:#000;color:#fff;font-family:'Outfit',sans-serif;overflow-x:hidden}
+#star-svg{position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%}
+
+@keyframes fadeUp  {from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn  {from{opacity:0}to{opacity:1}}
+@keyframes slideIn {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn   {from{transform:scale(.94) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+
+/* ── TOP NAV ── */
+.top-nav{width:100%;padding:1.6rem 2.4rem;display:flex;align-items:center;justify-content:space-between;animation:fadeDown .7s ease .1s both;position:relative;z-index:2}
+.nav-logo{display:flex;align-items:center;gap:.55rem;font-size:.88rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+.nav-logo svg{flex-shrink:0}
+.nav-links{display:flex;gap:.4rem}
+.nav-link{padding:.36rem .9rem;border-radius:30px;font-size:.78rem;color:var(--dim);text-decoration:none;background:var(--fainter);border:1px solid transparent;transition:all .22s;cursor:pointer}
+.nav-link:hover{color:#fff;background:var(--glass);border-color:var(--gb)}
+
+/* ── MAIN ── */
+.main-wrap{position:relative;z-index:1;min-height:calc(100vh - 76px);display:flex;flex-direction:column;align-items:center;padding:2.5rem 1.5rem 5rem}
+.hero-eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:.9rem;animation:fadeUp .8s ease .15s both;text-align:center}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(2.4rem,6vw,3.6rem);font-weight:400;line-height:1.05;margin-bottom:.8rem;animation:fadeUp .8s ease .25s both;text-align:center}
+.hero-sub{font-size:.92rem;font-weight:300;color:var(--dim);max-width:480px;line-height:1.7;margin-bottom:2.6rem;animation:fadeUp .8s ease .35s both;text-align:center}
+
+/* ── COMPARE CARD ── */
+.compare-card{width:100%;max-width:920px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:2rem;backdrop-filter:blur(30px);animation:fadeUp .8s ease .45s both;position:relative;overflow:hidden}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+@media(max-width:760px){.compare-grid{grid-template-columns:1fr}}
+.fp-col{display:flex;flex-direction:column}
+.fp-label{font-size:.67rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.55rem;display:flex;align-items:center;justify-content:space-between}
+.fp-label small{font-size:.62rem;font-weight:300;text-transform:none;letter-spacing:0;color:rgba(255,255,255,.22)}
+.fp-textarea{width:100%;min-height:130px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.9rem 1rem;color:#fff;font-family:'JetBrains Mono','SF Mono',monospace;font-size:.86rem;line-height:1.65;outline:none;resize:vertical;transition:border-color .2s,background .2s;letter-spacing:.02em}
+.fp-textarea:focus{border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.07)}
+.fp-textarea::placeholder{color:rgba(255,255,255,.18);font-family:'Outfit',sans-serif;font-weight:300}
+
+.fp-meta{display:flex;gap:.5rem;margin-top:.55rem;font-size:.68rem;color:rgba(255,255,255,.28)}
+.fp-meta span{display:flex;align-items:center;gap:.3rem}
+
+.compare-actions{display:flex;justify-content:center;gap:.7rem;margin-top:1.6rem}
+.btn-compare{padding:.85rem 2.4rem;background:rgba(255,255,255,.9);border:none;border-radius:50px;color:#000;font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .25s cubic-bezier(.34,1.4,.64,1);box-shadow:0 0 0 rgba(255,255,255,0)}
+.btn-compare:hover{background:#fff;transform:translateY(-2px);box-shadow:0 10px 30px rgba(255,255,255,.13)}
+.btn-compare:active{transform:translateY(0)}
+.btn-clear{padding:.85rem 1.6rem;background:transparent;border:1px solid rgba(255,255,255,.13);border-radius:50px;color:var(--dim);font-family:'Outfit',sans-serif;font-size:.86rem;cursor:pointer;transition:all .22s}
+.btn-clear:hover{border-color:rgba(255,255,255,.3);color:#fff}
+
+/* ── OPTIONS ROW ── */
+.options-row{display:flex;justify-content:center;gap:1.3rem;margin-top:1.2rem;flex-wrap:wrap}
+.opt-toggle{display:flex;align-items:center;gap:.5rem;font-size:.76rem;color:var(--dim);cursor:pointer;user-select:none}
+.opt-toggle input{display:none}
+.opt-switch{width:32px;height:18px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);position:relative;transition:background .2s,border-color .2s;flex-shrink:0}
+.opt-switch::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.6);top:1.5px;left:2px;transition:transform .22s cubic-bezier(.34,1.4,.64,1),background .2s}
+.opt-toggle input:checked + .opt-switch{background:rgba(167,139,250,.35);border-color:rgba(167,139,250,.5)}
+.opt-toggle input:checked + .opt-switch::after{transform:translateX(14px);background:#c4b5fd}
+.opt-toggle:hover{color:#fff}
+
+/* ── RESULT PANEL ── */
+.result-panel{width:100%;max-width:920px;margin-top:1.6rem;border-radius:22px;overflow:hidden;max-height:0;opacity:0;transition:max-height .5s cubic-bezier(.4,0,.2,1),opacity .4s ease,margin-top .4s ease}
+.result-panel.show{max-height:600px;opacity:1}
+.result-inner{padding:2rem;border-radius:22px;backdrop-filter:blur(30px);position:relative;overflow:hidden}
+
+.result-inner.match{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.3);box-shadow:0 0 60px rgba(52,211,153,.08) inset}
+.result-inner.nomatch{background:rgba(255,107,107,.06);border:1px solid rgba(255,107,107,.3);box-shadow:0 0 60px rgba(255,107,107,.08) inset}
+
+.result-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.3rem}
+.result-icon{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.result-icon.match{background:rgba(52,211,153,.15);animation:matchPop .55s cubic-bezier(.34,1.56,.64,1) both}
+.result-icon.nomatch{background:rgba(255,107,107,.15);animation:shakeX .5s ease both}
+@keyframes matchPop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem;font-weight:400}
+.result-title.match{color:#6ee7b7}
+.result-title.nomatch{color:#ff8a8a}
+.result-sub{font-size:.8rem;color:var(--dim);margin-top:.15rem}
+
+/* Diff display */
+.diff-section{margin-top:1.3rem}
+.diff-label{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:.6rem}
+.diff-display{font-family:'JetBrains Mono','SF Mono',monospace;font-size:.92rem;line-height:2;background:rgba(0,0,0,.3);border-radius:14px;padding:1.1rem 1.3rem;letter-spacing:.04em;word-break:break-all;border:1px solid rgba(255,255,255,.06)}
+.diff-char{padding:0 .04em;border-radius:3px;transition:background .15s}
+.diff-char.same{color:rgba(255,255,255,.45)}
+.diff-char.diff-a{background:rgba(255,107,107,.28);color:#ffb3b3;font-weight:600}
+.diff-char.diff-b{background:rgba(96,165,250,.22);color:#a8c8f5}
+.diff-char.missing{background:rgba(251,191,36,.22);color:#fde08a;text-decoration:line-through;opacity:.7}
+
+.diff-legend{display:flex;gap:1.1rem;margin-top:.85rem;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:rgba(255,255,255,.4)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+.stat-row{display:flex;gap:1.5rem;margin-top:1.2rem;flex-wrap:wrap}
+.stat-box{flex:1;min-width:120px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:.8rem 1rem}
+.stat-num{font-family:'DM Serif Display',serif;font-size:1.5rem;line-height:1}
+.stat-num.green{color:#6ee7b7}
+.stat-num.red{color:#ff8a8a}
+.stat-name{font-size:.66rem;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.08em;margin-top:.35rem}
+
+/* Particle burst for match */
+.burst-particle{position:absolute;width:4px;height:4px;border-radius:50%;pointer-events:none;animation:burstOut .9s ease-out forwards}
+@keyframes burstOut{0%{transform:translate(0,0) scale(0);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(1);opacity:0}}
+
+/* ── INFO STRIP ── */
+.info-strip{width:100%;max-width:920px;margin-top:2.4rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.06);animation:fadeUp .8s ease .6s both}
+@media(max-width:700px){.info-strip{grid-template-columns:1fr}}
+.info-card{background:rgba(0,0,0,.7);padding:1.4rem 1.3rem}
+.info-icon{font-size:1.2rem;margin-bottom:.6rem;display:block;opacity:.7}
+.info-title{font-size:.82rem;font-weight:500;margin-bottom:.35rem}
+.info-desc{font-size:.74rem;font-weight:300;color:var(--dim);line-height:1.6}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.11);border-radius:2px}
+
+footer{text-align:center;padding:2rem;font-size:.7rem;color:rgba(255,255,255,.18);position:relative;z-index:1}
+</style>
+</head>
+<body>
+<svg id="star-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<nav class="top-nav">
+  <div class="nav-logo">
+    <svg width="15" height="15" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="3" fill="#fff" opacity="0.9"/><ellipse cx="16" cy="16" rx="11" ry="3.5" fill="none" stroke="#fff" stroke-width="1.3" opacity="0.5" transform="rotate(-30 16 16)"/><ellipse cx="16" cy="16" rx="7.5" ry="2.3" fill="none" stroke="#fff" stroke-width="0.9" opacity="0.35" transform="rotate(55 16 16)"/><circle cx="9" cy="11" r="1" fill="#fff" opacity="0.6"/><circle cx="23" cy="21" r="0.8" fill="#fff" opacity="0.55"/></svg>
+    Lyra
+  </div>
+  <div class="nav-links">
+    <a href="https://github.com" class="nav-link" id="github-link" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<div class="main-wrap">
+  <p class="hero-eyebrow">Offline · Local-only · No data ever leaves your browser</p>
+  <h1 class="hero-title">Fingerprint Verifier</h1>
+  <p class="hero-sub">Paste two PGP key fingerprints, SSH key fingerprints, or any hex/text identifiers below to verify they match — character by character, with every difference highlighted.</p>
+
+  <div class="compare-card">
+    <div class="compare-grid">
+      <div class="fp-col">
+        <div class="fp-label">Fingerprint A <small>yours / expected</small></div>
+        <textarea class="fp-textarea" id="fp-a" placeholder="e.g. 9F2C 8A41 0E7B 3D5F&#10;1A6C 4B89 2E0D 7F31 5C92 A8B4" spellcheck="false" autocomplete="off"></textarea>
+        <div class="fp-meta">
+          <span id="meta-a-len">0 characters</span>
+        </div>
+      </div>
+      <div class="fp-col">
+        <div class="fp-label">Fingerprint B <small>received / to verify</small></div>
+        <textarea class="fp-textarea" id="fp-b" placeholder="e.g. 9F2C8A410E7B3D5F1A6C4B892E0D7F315C92A8B4" spellcheck="false" autocomplete="off"></textarea>
+        <div class="fp-meta">
+          <span id="meta-b-len">0 characters</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="options-row">
+      <label class="opt-toggle">
+        <input type="checkbox" id="opt-case" checked/>
+        <span class="opt-switch"></span>
+        Ignore case
+      </label>
+      <label class="opt-toggle">
+        <input type="checkbox" id="opt-whitespace" checked/>
+        <span class="opt-switch"></span>
+        Ignore spaces / formatting
+      </label>
+      <label class="opt-toggle">
+        <input type="checkbox" id="opt-prefix" checked/>
+        <span class="opt-switch"></span>
+        Strip 0x / common prefixes
+      </label>
+    </div>
+
+    <div class="compare-actions">
+      <button class="btn-clear" onclick="clearAll()">Clear</button>
+      <button class="btn-compare" onclick="compareFingerprints()">Compare Fingerprints</button>
+    </div>
+  </div>
+
+  <div class="result-panel" id="result-panel">
+    <div class="result-inner" id="result-inner">
+      <div class="result-header">
+        <div class="result-icon" id="result-icon"></div>
+        <div>
+          <div class="result-title" id="result-title"></div>
+          <div class="result-sub" id="result-sub"></div>
+        </div>
+      </div>
+
+      <div class="stat-row" id="stat-row"></div>
+
+      <div class="diff-section" id="diff-section" style="display:none">
+        <div class="diff-label">Character-by-character comparison</div>
+        <div class="diff-display" id="diff-display"></div>
+        <div class="diff-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(255,107,107,.5)"></div>Mismatch</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(251,191,36,.5)"></div>Extra / Missing</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,.15)"></div>Match</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-strip">
+    <div class="info-card">
+      <span class="info-icon">🔒</span>
+      <div class="info-title">100% Local</div>
+      <div class="info-desc">All comparison happens in your browser. Nothing is sent anywhere, ever.</div>
+    </div>
+    <div class="info-card">
+      <span class="info-icon">⚡</span>
+      <div class="info-title">Smart Normalisation</div>
+      <div class="info-desc">Strips spaces, handles case differences, and ignores common prefixes automatically.</div>
+    </div>
+    <div class="info-card">
+      <span class="info-icon">🔍</span>
+      <div class="info-title">Exact Diff</div>
+      <div class="info-desc">See precisely which characters differ and where — no guessing.</div>
+    </div>
+  </div>
+</div>
+
+<footer>Lyra Fingerprint Verifier — self-hosted, open source</footer>
+
+<script>
+'use strict';
+
+// ── STARS — SVG SMIL, zero flicker ──────────────────────────────────────────
+(function buildStars(){
+  const svg = document.getElementById('star-svg');
+  if(!svg) return;
+  const W = innerWidth, H = innerHeight;
+  const n = Math.min(Math.floor(W * H / 7000), 150);
+  const ns = 'http://www.w3.org/2000/svg';
+  const frag = document.createDocumentFragment();
+  for(let i = 0; i < n; i++){
+    const c = document.createElementNS(ns, 'circle');
+    const x = (Math.random() * W).toFixed(1);
+    const y = (Math.random() * H).toFixed(1);
+    const r = (Math.random() * 0.9 + 0.3).toFixed(2);
+    const dur = (Math.random() * 7 + 3).toFixed(1) + 's';
+    const beg = '-' + (Math.random() * 9).toFixed(1) + 's';
+    const peak = (Math.random() * 0.55 + 0.15).toFixed(2);
+    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', r);
+    c.setAttribute('fill', '#fff'); c.setAttribute('opacity', '0.05');
+    const anim = document.createElementNS(ns, 'animate');
+    anim.setAttribute('attributeName', 'opacity');
+    anim.setAttribute('values', `0.05;${peak};0.05`);
+    anim.setAttribute('dur', dur);
+    anim.setAttribute('begin', beg);
+    anim.setAttribute('repeatCount', 'indefinite');
+    anim.setAttribute('calcMode', 'spline');
+    anim.setAttribute('keySplines', '0.4 0 0.6 1;0.4 0 0.6 1');
+    c.appendChild(anim);
+    frag.appendChild(c);
+  }
+  svg.appendChild(frag);
+})();
+
+// Pause stars while typing — avoids any possible flicker interplay
+document.addEventListener('focusin', e => {
+  if(e.target.matches('textarea,input')) { try{ document.getElementById('star-svg')?.pauseAnimations(); }catch(_){} }
+});
+document.addEventListener('focusout', e => {
+  if(e.target.matches('textarea,input')) { try{ document.getElementById('star-svg')?.unpauseAnimations(); }catch(_){} }
+});
+
+// ── Set GitHub link if known ──────────────────────────────────────────────
+document.getElementById('github-link').href = 'https://github.com/';
+
+// ── LIVE CHARACTER COUNTS ───────────────────────────────────────────────────
+const taA = document.getElementById('fp-a');
+const taB = document.getElementById('fp-b');
+taA.addEventListener('input', () => {
+  document.getElementById('meta-a-len').textContent = `${taA.value.length} character${taA.value.length===1?'':'s'}`;
+});
+taB.addEventListener('input', () => {
+  document.getElementById('meta-b-len').textContent = `${taB.value.length} character${taB.value.length===1?'':'s'}`;
+});
+
+// ── NORMALISATION ────────────────────────────────────────────────────────────
+function normalise(str, opts) {
+  let s = str;
+  if (opts.prefix) {
+    s = s.replace(/^0x/i, '');
+    s = s.replace(/^(sha256|sha1|md5):/i, '');
+    s = s.replace(/^fingerprint:?\s*/i, '');
+  }
+  if (opts.whitespace) {
+    s = s.replace(/[\s:\-]+/g, '');
+  }
+  if (opts.case) {
+    s = s.toLowerCase();
+  }
+  return s;
+}
+
+// ── DIFF ALGORITHM — LCS-based diff for clear visual alignment ──────────────
+function computeDiff(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, () => new Uint16Array(n+1));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  const ops = [];
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i-1] === b[j-1]) {
+      ops.unshift({type: 'same', a: a[i-1], b: b[j-1]});
+      i--; j--;
+    } else if (dp[i-1][j] >= dp[i][j-1]) {
+      ops.unshift({type: 'del', a: a[i-1], b: null});
+      i--;
+    } else {
+      ops.unshift({type: 'ins', a: null, b: b[j-1]});
+      j--;
+    }
+  }
+  while (i > 0) { ops.unshift({type:'del', a:a[i-1], b:null}); i--; }
+  while (j > 0) { ops.unshift({type:'ins', a:null, b:b[j-1]}); j--; }
+  return ops;
+}
+
+// ── MAIN COMPARE ─────────────────────────────────────────────────────────────
+function compareFingerprints() {
+  const rawA = taA.value.trim();
+  const rawB = taB.value.trim();
+
+  if (!rawA || !rawB) {
+    showToastLike('Enter both fingerprints to compare');
+    return;
+  }
+
+  const opts = {
+    case: document.getElementById('opt-case').checked,
+    whitespace: document.getElementById('opt-whitespace').checked,
+    prefix: document.getElementById('opt-prefix').checked,
+  };
+
+  const normA = normalise(rawA, opts);
+  const normB = normalise(rawB, opts);
+
+  const isMatch = normA === normB;
+  const panel = document.getElementById('result-panel');
+  const inner = document.getElementById('result-inner');
+  const icon  = document.getElementById('result-icon');
+  const title = document.getElementById('result-title');
+  const sub   = document.getElementById('result-sub');
+  const statRow = document.getElementById('stat-row');
+  const diffSection = document.getElementById('diff-section');
+  const diffDisplay = document.getElementById('diff-display');
+
+  // Clear old burst particles
+  inner.querySelectorAll('.burst-particle').forEach(p => p.remove());
+
+  inner.className = 'result-inner ' + (isMatch ? 'match' : 'nomatch');
+  icon.className  = 'result-icon ' + (isMatch ? 'match' : 'nomatch');
+  title.className = 'result-title ' + (isMatch ? 'match' : 'nomatch');
+
+  // Force re-trigger of icon animation
+  icon.style.animation = 'none'; icon.offsetHeight; icon.style.animation = '';
+
+  if (isMatch) {
+    icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    title.textContent = 'Fingerprints Match';
+    sub.textContent = `${normA.length} characters compared — identical after normalisation`;
+    diffSection.style.display = 'none';
+    statRow.innerHTML = `
+      <div class="stat-box"><div class="stat-num green">100%</div><div class="stat-name">Match</div></div>
+      <div class="stat-box"><div class="stat-num green">${normA.length}</div><div class="stat-name">Characters</div></div>
+      <div class="stat-box"><div class="stat-num green">0</div><div class="stat-name">Differences</div></div>
+    `;
+    spawnBurst(inner, true);
+  } else {
+    icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8a8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    title.textContent = 'Fingerprints Do NOT Match';
+
+    const ops = computeDiff(normA, normB);
+    const mismatches = ops.filter(o => o.type !== 'same').length;
+    const matchPct = Math.round((ops.filter(o => o.type === 'same').length / Math.max(normA.length, normB.length, 1)) * 100);
+
+    sub.textContent = `${mismatches} difference${mismatches===1?'':'s'} found across ${Math.max(normA.length,normB.length)} characters`;
+
+    diffSection.style.display = 'block';
+    diffDisplay.innerHTML = ops.map(op => {
+      if (op.type === 'same') return `<span class="diff-char same">${escHtml(op.a)}</span>`;
+      if (op.type === 'del')  return `<span class="diff-char diff-a" title="Only in A">${escHtml(op.a)}</span>`;
+      return `<span class="diff-char diff-b" title="Only in B">${escHtml(op.b)}</span>`;
+    }).join('');
+
+    statRow.innerHTML = `
+      <div class="stat-box"><div class="stat-num red">${matchPct}%</div><div class="stat-name">Similarity</div></div>
+      <div class="stat-box"><div class="stat-num red">${mismatches}</div><div class="stat-name">Differences</div></div>
+      <div class="stat-box"><div class="stat-num red">${Math.max(normA.length,normB.length)}</div><div class="stat-name">Total Length</div></div>
+    `;
+  }
+
+  panel.classList.add('show');
+  setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
+}
+
+function spawnBurst(container, isGreen) {
+  const colors = isGreen ? ['#34d399','#6ee7b7','#a7f3d0'] : ['#ff6b6b','#ff8a8a','#ffb3b3'];
+  const cx = 46/2 + 32, cy = 46/2 + 32;
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('div');
+    p.className = 'burst-particle';
+    const angle = (i/16) * Math.PI * 2;
+    const dist = 50 + Math.random()*40;
+    p.style.left = cx + 'px';
+    p.style.top  = cy + 'px';
+    p.style.background = colors[i % colors.length];
+    p.style.setProperty('--tx', (Math.cos(angle)*dist).toFixed(1)+'px');
+    p.style.setProperty('--ty', (Math.sin(angle)*dist).toFixed(1)+'px');
+    p.style.animationDelay = (Math.random()*0.15).toFixed(2)+'s';
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 1100);
+  }
+}
+
+function clearAll() {
+  taA.value = ''; taB.value = '';
+  document.getElementById('meta-a-len').textContent = '0 characters';
+  document.getElementById('meta-b-len').textContent = '0 characters';
+  document.getElementById('result-panel').classList.remove('show');
+  taA.focus();
+}
+
+function escHtml(c) {
+  if (c === undefined || c === null) return '';
+  return String(c).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+let _toastEl = null;
+function showToastLike(msg) {
+  if (_toastEl) _toastEl.remove();
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:1.6rem;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.17);backdrop-filter:blur(20px);border-radius:28px;padding:.54rem 1.3rem;font-size:.8rem;color:#fff;z-index:9999;animation:popIn .25s ease';
+  document.body.appendChild(t);
+  _toastEl = t;
+  setTimeout(() => { t.remove(); _toastEl = null; }, 2400);
+}
+
+[taA, taB].forEach(ta => {
+  ta.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      compareFingerprints();
+    }
+  });
+});
+</script>
+</body>
+</html>
+
