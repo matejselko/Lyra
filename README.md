@@ -68,4 +68,4 @@ Then open **http://localhost:3000**
 
 ## License
 
-MIT
+[MIT](https://github.com/matejselko/Lyra/blob/main/LICENSE)
