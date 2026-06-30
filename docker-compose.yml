@@ -1,0 +1,7 @@
+services:
+  lyra:
+    image: ghcr.io/YOUR_GITHUB_USERNAME/lyra-fingerprint:latest
+    container_name: lyra-fingerprint
+    restart: unless-stopped
+    ports:
+      - "3458:3000"
