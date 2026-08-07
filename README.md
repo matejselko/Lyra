@@ -71,4 +71,4 @@ Then open **http://localhost:3000**
 [MIT](https://github.com/matejselko/Lyra/blob/main/LICENSE)
 
 
-*Note: This project uses gererative AI on a large scale.*
+*Note: This project is vibe-coded.*
