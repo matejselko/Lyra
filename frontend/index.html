@@ -1,469 +1,290 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-scheme="green" data-mode="light">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Lyra — Fingerprint Verifier</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23a78bfa'/%3E%3Cellipse cx='16' cy='16' rx='10' ry='4' fill='none' stroke='%23a78bfa' stroke-width='1.5' opacity='.7' transform='rotate(-30 16 16)'/%3E%3Cellipse cx='16' cy='16' rx='7' ry='2.5' fill='none' stroke='%23818cf8' stroke-width='1' opacity='.5' transform='rotate(60 16 16)'/%3E%3C/svg%3E">
+<title>Lyra — Fingerprint verifier</title>
+<meta name="theme-color" content="#FDFDF5" id="tc"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='7' fill='%23386A20'/%3E%3Cpath fill='%23B8F397' d='M12 4 6 6.7v4.4c0 3.7 2.5 7 6 8 3.5-1 6-4.3 6-8V6.7L12 4zm-1 9.6-2.4-2.4 1-1L11 11.6l3.4-3.4 1 1-4.4 4.4z'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>(function(){var d=document.documentElement;try{var s=localStorage.getItem('lyra-scheme')||'green',m=localStorage.getItem('lyra-mode')||'auto';d.dataset.scheme=s;d.dataset.mode=(m==='dark'||(m==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches))?'dark':'light'}catch(e){}})()</script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --dim:rgba(255,255,255,.5);--faint:rgba(255,255,255,.2);--fainter:rgba(255,255,255,.07);
-  --glass:rgba(255,255,255,.08);--gb:rgba(255,255,255,.14);
-  --green:#34d399;--green-dim:rgba(52,211,153,.5);
-  --red:#ff6b6b;--red-dim:rgba(255,107,107,.5);
-}
-html,body{height:100%;background:#000;color:#fff;font-family:'Outfit',sans-serif;overflow-x:hidden}
-#star-svg{position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%}
-
-@keyframes fadeUp  {from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeIn  {from{opacity:0}to{opacity:1}}
-@keyframes slideIn {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes popIn   {from{transform:scale(.94) translateY(10px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-
-/* ── TOP NAV ── */
-.top-nav{width:100%;padding:1.6rem 2.4rem;display:flex;align-items:center;justify-content:space-between;animation:fadeDown .7s ease .1s both;position:relative;z-index:2}
-.nav-logo{display:flex;align-items:center;gap:.55rem;font-size:.88rem;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
-.nav-logo svg{flex-shrink:0}
-.nav-links{display:flex;gap:.4rem}
-.nav-link{padding:.36rem .9rem;border-radius:30px;font-size:.78rem;color:var(--dim);text-decoration:none;background:var(--fainter);border:1px solid transparent;transition:all .22s;cursor:pointer}
-.nav-link:hover{color:#fff;background:var(--glass);border-color:var(--gb)}
-
-/* ── MAIN ── */
-.main-wrap{position:relative;z-index:1;min-height:calc(100vh - 76px);display:flex;flex-direction:column;align-items:center;padding:2.5rem 1.5rem 5rem}
-.hero-eyebrow{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-bottom:.9rem;animation:fadeUp .8s ease .15s both;text-align:center}
-.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(2.4rem,6vw,3.6rem);font-weight:400;line-height:1.05;margin-bottom:.8rem;animation:fadeUp .8s ease .25s both;text-align:center}
-.hero-sub{font-size:.92rem;font-weight:300;color:var(--dim);max-width:480px;line-height:1.7;margin-bottom:2.6rem;animation:fadeUp .8s ease .35s both;text-align:center}
-
-/* ── COMPARE CARD ── */
-.compare-card{width:100%;max-width:920px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:2rem;backdrop-filter:blur(30px);animation:fadeUp .8s ease .45s both;position:relative;overflow:hidden}
-.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
-@media(max-width:760px){.compare-grid{grid-template-columns:1fr}}
-.fp-col{display:flex;flex-direction:column}
-.fp-label{font-size:.67rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:.55rem;display:flex;align-items:center;justify-content:space-between}
-.fp-label small{font-size:.62rem;font-weight:300;text-transform:none;letter-spacing:0;color:rgba(255,255,255,.22)}
-.fp-textarea{width:100%;min-height:130px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.9rem 1rem;color:#fff;font-family:'JetBrains Mono','SF Mono',monospace;font-size:.86rem;line-height:1.65;outline:none;resize:vertical;transition:border-color .2s,background .2s;letter-spacing:.02em}
-.fp-textarea:focus{border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.07)}
-.fp-textarea::placeholder{color:rgba(255,255,255,.18);font-family:'Outfit',sans-serif;font-weight:300}
-
-.fp-meta{display:flex;gap:.5rem;margin-top:.55rem;font-size:.68rem;color:rgba(255,255,255,.28)}
-.fp-meta span{display:flex;align-items:center;gap:.3rem}
-
-.compare-actions{display:flex;justify-content:center;gap:.7rem;margin-top:1.6rem}
-.btn-compare{padding:.85rem 2.4rem;background:rgba(255,255,255,.9);border:none;border-radius:50px;color:#000;font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .25s cubic-bezier(.34,1.4,.64,1);box-shadow:0 0 0 rgba(255,255,255,0)}
-.btn-compare:hover{background:#fff;transform:translateY(-2px);box-shadow:0 10px 30px rgba(255,255,255,.13)}
-.btn-compare:active{transform:translateY(0)}
-.btn-clear{padding:.85rem 1.6rem;background:transparent;border:1px solid rgba(255,255,255,.13);border-radius:50px;color:var(--dim);font-family:'Outfit',sans-serif;font-size:.86rem;cursor:pointer;transition:all .22s}
-.btn-clear:hover{border-color:rgba(255,255,255,.3);color:#fff}
-
-/* ── OPTIONS ROW ── */
-.options-row{display:flex;justify-content:center;gap:1.3rem;margin-top:1.2rem;flex-wrap:wrap}
-.opt-toggle{display:flex;align-items:center;gap:.5rem;font-size:.76rem;color:var(--dim);cursor:pointer;user-select:none}
-.opt-toggle input{display:none}
-.opt-switch{width:32px;height:18px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);position:relative;transition:background .2s,border-color .2s;flex-shrink:0}
-.opt-switch::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.6);top:1.5px;left:2px;transition:transform .22s cubic-bezier(.34,1.4,.64,1),background .2s}
-.opt-toggle input:checked + .opt-switch{background:rgba(167,139,250,.35);border-color:rgba(167,139,250,.5)}
-.opt-toggle input:checked + .opt-switch::after{transform:translateX(14px);background:#c4b5fd}
-.opt-toggle:hover{color:#fff}
-
-/* ── RESULT PANEL ── */
-.result-panel{width:100%;max-width:920px;margin-top:1.6rem;border-radius:22px;overflow:hidden;max-height:0;opacity:0;transition:max-height .5s cubic-bezier(.4,0,.2,1),opacity .4s ease,margin-top .4s ease}
-.result-panel.show{max-height:600px;opacity:1}
-.result-inner{padding:2rem;border-radius:22px;backdrop-filter:blur(30px);position:relative;overflow:hidden}
-
-.result-inner.match{background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.3);box-shadow:0 0 60px rgba(52,211,153,.08) inset}
-.result-inner.nomatch{background:rgba(255,107,107,.06);border:1px solid rgba(255,107,107,.3);box-shadow:0 0 60px rgba(255,107,107,.08) inset}
-
-.result-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.3rem}
-.result-icon{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
-.result-icon.match{background:rgba(52,211,153,.15);animation:matchPop .55s cubic-bezier(.34,1.56,.64,1) both}
-.result-icon.nomatch{background:rgba(255,107,107,.15);animation:shakeX .5s ease both}
-@keyframes matchPop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
-@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
-.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem;font-weight:400}
-.result-title.match{color:#6ee7b7}
-.result-title.nomatch{color:#ff8a8a}
-.result-sub{font-size:.8rem;color:var(--dim);margin-top:.15rem}
-
-/* Diff display */
-.diff-section{margin-top:1.3rem}
-.diff-label{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.32);margin-bottom:.6rem}
-.diff-display{font-family:'JetBrains Mono','SF Mono',monospace;font-size:.92rem;line-height:2;background:rgba(0,0,0,.3);border-radius:14px;padding:1.1rem 1.3rem;letter-spacing:.04em;word-break:break-all;border:1px solid rgba(255,255,255,.06)}
-.diff-char{padding:0 .04em;border-radius:3px;transition:background .15s}
-.diff-char.same{color:rgba(255,255,255,.45)}
-.diff-char.diff-a{background:rgba(255,107,107,.28);color:#ffb3b3;font-weight:600}
-.diff-char.diff-b{background:rgba(96,165,250,.22);color:#a8c8f5}
-.diff-char.missing{background:rgba(251,191,36,.22);color:#fde08a;text-decoration:line-through;opacity:.7}
-
-.diff-legend{display:flex;gap:1.1rem;margin-top:.85rem;flex-wrap:wrap}
-.legend-item{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:rgba(255,255,255,.4)}
-.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-
-.stat-row{display:flex;gap:1.5rem;margin-top:1.2rem;flex-wrap:wrap}
-.stat-box{flex:1;min-width:120px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:.8rem 1rem}
-.stat-num{font-family:'DM Serif Display',serif;font-size:1.5rem;line-height:1}
-.stat-num.green{color:#6ee7b7}
-.stat-num.red{color:#ff8a8a}
-.stat-name{font-size:.66rem;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.08em;margin-top:.35rem}
-
-/* Particle burst for match */
-.burst-particle{position:absolute;width:4px;height:4px;border-radius:50%;pointer-events:none;animation:burstOut .9s ease-out forwards}
-@keyframes burstOut{0%{transform:translate(0,0) scale(0);opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(1);opacity:0}}
-
-/* ── INFO STRIP ── */
-.info-strip{width:100%;max-width:920px;margin-top:2.4rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.06);animation:fadeUp .8s ease .6s both}
-@media(max-width:700px){.info-strip{grid-template-columns:1fr}}
-.info-card{background:rgba(0,0,0,.7);padding:1.4rem 1.3rem}
-.info-icon{font-size:1.2rem;margin-bottom:.6rem;display:block;opacity:.7}
-.info-title{font-size:.82rem;font-weight:500;margin-bottom:.35rem}
-.info-desc{font-size:.74rem;font-weight:300;color:var(--dim);line-height:1.6}
-
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,.11);border-radius:2px}
-
-footer{text-align:center;padding:2rem;font-size:.7rem;color:rgba(255,255,255,.18);position:relative;z-index:1}
+/* Material Design 3 colour roles: p=primary pc=primary-container sc=secondary-container s1/s2=surface-container-low/default */
+[data-scheme=green]{--p:#386A20;--on-p:#fff;--pc:#B8F397;--sc:#D7E8CD;--bg:#FDFDF5;--s1:#F7F8EF;--s2:#ECEEE4;--on-s:#1A1C18;--on-sv:#43483F;--ol:#73796E}
+[data-scheme=green][data-mode=dark]{--p:#9DD67D;--on-p:#123800;--pc:#215107;--sc:#3B4B33;--bg:#1A1C18;--s1:#1E201A;--s2:#2B2D26;--on-s:#E3E3DB;--on-sv:#C3C8BB;--ol:#8D9387}
+[data-scheme=blue]{--p:#415F91;--on-p:#fff;--pc:#D6E3FF;--sc:#DBE2F9;--bg:#F9F9FF;--s1:#F3F3FA;--s2:#E7E8EE;--on-s:#191C20;--on-sv:#44474E;--ol:#74777F}
+[data-scheme=blue][data-mode=dark]{--p:#AAC7FF;--on-p:#0A305F;--pc:#284777;--sc:#3F4759;--bg:#111318;--s1:#191C20;--s2:#282A2F;--on-s:#E2E2E9;--on-sv:#C4C6D0;--ol:#8E9099}
+[data-scheme=red]{--p:#904A45;--on-p:#fff;--pc:#FFDAD6;--sc:#F7DDD9;--bg:#FFF8F7;--s1:#FFF0EE;--s2:#F6E4E2;--on-s:#231918;--on-sv:#534341;--ol:#857371}
+[data-scheme=red][data-mode=dark]{--p:#FFB4AB;--on-p:#571E1B;--pc:#73332F;--sc:#5D3F3C;--bg:#1A1110;--s1:#231918;--s2:#322827;--on-s:#F1DFDD;--on-sv:#D8C2BF;--ol:#A08C8A}
+[data-scheme=purple]{--p:#6750A4;--on-p:#fff;--pc:#EADDFF;--sc:#E8DEF8;--bg:#FEF7FF;--s1:#F7F2FA;--s2:#ECE6F0;--on-s:#1D1B20;--on-sv:#49454F;--ol:#79747E}
+[data-scheme=purple][data-mode=dark]{--p:#D0BCFF;--on-p:#381E72;--pc:#4F378B;--sc:#4A4458;--bg:#141218;--s1:#1D1B20;--s2:#2B2930;--on-s:#E6E0E9;--on-sv:#CAC4D0;--ol:#938F99}
+[data-scheme=orange]{--p:#8B5000;--on-p:#fff;--pc:#FFDCBE;--sc:#F9DFC4;--bg:#FFF8F5;--s1:#FFF1E8;--s2:#F5E5D7;--on-s:#201B16;--on-sv:#51453A;--ol:#837469}
+[data-scheme=orange][data-mode=dark]{--p:#FFB870;--on-p:#4A2800;--pc:#693C00;--sc:#5A4130;--bg:#17120D;--s1:#201B16;--s2:#302A24;--on-s:#EBE0D9;--on-sv:#D5C3B5;--ol:#9D8E81}
+:root{--ok:#1E6B35;--on-ok:#fff;--ok-c:#B7F2C0;--on-ok-c:#00210B;--err:#BA1A1A;--on-err:#fff;--err-c:#FFDAD6;--on-err-c:#410002;--f:Roboto,"Google Sans",system-ui,sans-serif;--m:"Roboto Mono",ui-monospace,Menlo,monospace;--e:cubic-bezier(.2,0,0,1)}
+[data-mode=dark]{--ok:#8CD99B;--on-ok:#00391A;--ok-c:#0F5224;--on-ok-c:#B7F2C0;--err:#FFB4AB;--on-err:#690005;--err-c:#93000A;--on-err-c:#FFDAD6}
+*{box-sizing:border-box;margin:0}
+html{background:var(--bg);color:var(--on-s);font:400 16px/24px var(--f);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;transition:background .25s}
+svg{fill:currentColor;flex-shrink:0}
+.bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg)}
+.logo{width:40px;height:40px;border-radius:50%;background:var(--pc);display:grid;place-items:center}
+.bar h1{font:400 22px/28px var(--f)}
+.bar small{display:block;font:400 12px/16px var(--f);color:var(--on-sv)}
+.sp{flex:1}
+.rip{position:relative;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.rip::after{content:"";position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity .15s;pointer-events:none}
+.rip:hover::after{opacity:.08}.rip:focus-visible::after{opacity:.12}
+.rip:focus-visible{outline:2px solid var(--p);outline-offset:2px}
+.ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.14;transform:scale(0);animation:rp .55s var(--e) forwards;pointer-events:none}
+@keyframes rp{to{transform:scale(1);opacity:0}}
+.ib{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:var(--on-sv);display:grid;place-items:center}
+.tag{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid color-mix(in srgb,var(--ol) 50%,transparent);border-radius:8px;font:500 14px/20px var(--f);color:var(--on-sv)}
+main{max-width:880px;margin:0 auto;padding:8px 16px 48px}
+.hero{padding:24px 8px 28px}
+.hero h2{font:400 36px/44px var(--f);letter-spacing:0}
+.hero p{margin-top:8px;max-width:60ch;color:var(--on-sv)}
+.card{background:var(--s1);border-radius:28px;padding:28px 24px 24px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:28px 24px}
+.field{position:relative}
+.field textarea{display:block;width:100%;min-height:136px;resize:vertical;background:transparent;border:1px solid var(--ol);border-radius:4px;padding:16px;color:var(--on-s);font:400 15px/1.6 var(--m);letter-spacing:.03em;outline:none;transition:border-color .15s}
+.field textarea:hover{border-color:var(--on-s)}
+.field textarea:focus{border-color:var(--p);box-shadow:0 0 0 1px var(--p)}
+.field label{position:absolute;left:12px;top:14px;padding:0 4px;background:var(--s1);color:var(--on-sv);font:400 16px/24px var(--f);pointer-events:none;transition:top .15s var(--e),font-size .15s var(--e),color .15s}
+.field textarea:focus+label,.field textarea:not(:placeholder-shown)+label{top:-10px;font-size:12px;line-height:16px}
+.field textarea:focus+label{color:var(--p)}
+.sup{display:flex;justify-content:space-between;gap:12px;padding:4px 16px 0;font:400 12px/16px var(--f);color:var(--on-sv)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ol);background:transparent;color:var(--on-sv);font:500 14px/20px var(--f)}
+.chip svg{width:18px;height:18px;display:none}
+.chip[aria-pressed=true]{background:var(--sc);color:var(--on-s);border-color:transparent;padding-left:8px}
+.chip[aria-pressed=true] svg{display:block}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 24px;border:0;border-radius:999px;font:500 14px/20px var(--f);letter-spacing:.1px;transition:transform .15s var(--e)}
+.btn svg{width:18px;height:18px}.btn:active{transform:scale(.97)}
+.btn.fill{background:var(--p);color:var(--on-p);padding-left:16px}
+.btn.text{background:transparent;color:var(--p);padding:0 16px}
+.res{margin-top:16px;border-radius:28px;padding:24px;animation:in .45s var(--e)}
+.res[hidden]{display:none}
+@keyframes in{from{opacity:0;transform:translateY(12px) scale(.98)}}
+.res.ok{background:var(--ok-c);color:var(--on-ok-c)}
+.res.bad{background:var(--err-c);color:var(--on-err-c)}
+.rh{display:flex;align-items:center;gap:16px}
+.ri{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex-shrink:0}
+.ok .ri{background:var(--ok);color:var(--on-ok)}.bad .ri{background:var(--err);color:var(--on-err)}
+.ri svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.dr{stroke-dasharray:1;stroke-dashoffset:1;animation:dr .5s .15s var(--e) forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+.rh h3{font:400 24px/32px var(--f)}.rh p{font-size:14px;line-height:20px;opacity:.85;margin-top:2px}
+.sts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px}
+.st{border-radius:16px;padding:12px 16px;background:color-mix(in srgb,currentColor 8%,transparent)}
+.st b{display:block;font:400 28px/36px var(--f)}.st span{font-size:12px;line-height:16px;opacity:.85}
+.note{margin-top:16px;font-size:14px;line-height:20px}
+.dif{margin-top:20px;background:var(--s1);color:var(--on-s);border-radius:20px;padding:16px 20px}
+.dif h4{font:500 14px/20px var(--f);margin-bottom:8px;color:var(--on-sv)}
+.col{display:inline-flex;flex-direction:column;align-items:center;font:500 17px/1.75 var(--m)}
+.col:nth-child(4n){margin-right:.7em}
+.col b{font-weight:500;min-width:1.1ch;text-align:center;border-radius:4px;padding:0 .1em}
+.same{color:var(--on-sv)}.da{background:var(--err-c);color:var(--on-err-c)}.db{background:var(--pc);color:var(--on-s)}.gap{color:var(--ol)}
+.leg{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:12px;line-height:16px;color:var(--on-sv)}
+.leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+/* M3 motion: emphasized easing, staggered text, moving tick and cross */
+.w{display:inline-block;opacity:0;transform:translateY(.55em);animation:wi .7s var(--e) forwards;animation-delay:calc(var(--i)*var(--s,60ms) + var(--d,0ms))}
+@keyframes wi{to{opacity:1;transform:none}}
+.ri{position:relative;animation:pop .6s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes pop{from{transform:scale(0) rotate(-120deg)}}
+.ri::before{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid;animation:ring .95s .35s var(--e) both}
+.ok .ri::before{border-color:var(--ok)}.bad .ri::before{border-color:var(--err)}
+@keyframes ring{0%{opacity:0}1%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(2.2)}}
+.dr{animation-delay:.35s}
+.ok .ri svg{animation:bump .5s .85s cubic-bezier(.34,1.56,.64,1)}
+@keyframes bump{50%{transform:scale(1.22) rotate(-8deg)}}
+.bad .ri{animation:pop .5s cubic-bezier(.34,1.56,.64,1) both,shake .55s .85s var(--e)}
+@keyframes shake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.st{animation:in .5s var(--e) backwards}
+.st:nth-child(1){animation-delay:.45s}.st:nth-child(2){animation-delay:.52s}.st:nth-child(3){animation-delay:.59s}
+.col{animation:cin .45s var(--e) backwards;animation-delay:calc(.6s + var(--i,0)*16ms)}
+@keyframes cin{from{opacity:0;transform:translateY(10px)}}
+.da,.db{animation:hl .7s var(--e) 1.3s}
+@keyframes hl{40%{transform:scale(1.35)}}
+footer{text-align:center;padding:8px 16px 32px;font-size:12px;color:var(--on-sv)}
+dialog{border:0;border-radius:28px;padding:24px;width:min(92vw,400px);background:var(--s2);color:var(--on-s);margin:auto}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+dialog[open]{animation:in .3s var(--e)}
+dialog h3{font:400 24px/32px var(--f);margin-bottom:20px}
+dialog h4{font:500 14px/20px var(--f);color:var(--on-sv);margin:0 0 8px}
+.sws{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:24px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0;border:0;border-radius:12px;background:none;color:var(--on-sv);font:500 12px/16px var(--f)}
+.sw i{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--c1) 50%,var(--c2) 50%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ol) 50%,transparent)}
+.sw[aria-checked=true]{color:var(--on-s)}.sw[aria-checked=true] i{outline:3px solid var(--p);outline-offset:2px}
+.seg{display:flex;border:1px solid var(--ol);border-radius:999px;overflow:hidden;margin-bottom:24px}
+.seg button{flex:1;height:40px;border:0;border-left:1px solid var(--ol);background:transparent;color:var(--on-s);font:500 14px/20px var(--f);display:flex;align-items:center;justify-content:center;gap:6px}
+.seg button:first-child{border-left:0}
+.seg button svg{width:18px;height:18px;display:none}
+.seg [aria-checked=true]{background:var(--sc)}.seg [aria-checked=true] svg{display:block}
+.snack{position:fixed;left:50%;bottom:24px;z-index:20;transform:translate(-50%,24px);opacity:0;pointer-events:none;background:var(--on-s);color:var(--bg);padding:14px 16px;border-radius:8px;font-size:14px;line-height:20px;transition:all .25s var(--e)}
+.snack.show{transform:translate(-50%,0);opacity:1}
+@media(max-width:560px){.hero h2{font-size:30px;line-height:38px}.sts{grid-template-columns:1fr}.tag{display:none}.acts .btn{flex:1}}
+@media(prefers-reduced-motion:reduce){.w,.col,.st{animation-delay:0s!important}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<svg id="star-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+<header class="bar">
+  <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.6 3.8 10.7 9 12 5.2-1.3 9-6.4 9-12V5l-9-4zm-1 15-4-4 1.4-1.4L11 13.2l5.6-5.6L18 9l-7 7z"/></svg></div>
+  <div><h1>Lyra</h1><small>Fingerprint verifier</small></div>
+  <div class="sp"></div>
+  <span class="tag"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.8-2.2-5-5-5S7 3.2 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.7 1.3-3 3-3s3 1.3 3 3v2H9z"/></svg>Runs in your browser</span>
+  <button class="ib rip" id="open-theme" aria-label="Appearance"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM6.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></button>
+</header>
 
-<nav class="top-nav">
-  <div class="nav-logo">
-    <svg width="15" height="15" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="3" fill="#fff" opacity="0.9"/><ellipse cx="16" cy="16" rx="11" ry="3.5" fill="none" stroke="#fff" stroke-width="1.3" opacity="0.5" transform="rotate(-30 16 16)"/><ellipse cx="16" cy="16" rx="7.5" ry="2.3" fill="none" stroke="#fff" stroke-width="0.9" opacity="0.35" transform="rotate(55 16 16)"/><circle cx="9" cy="11" r="1" fill="#fff" opacity="0.6"/><circle cx="23" cy="21" r="0.8" fill="#fff" opacity="0.55"/></svg>
-    Lyra
-  </div>
-  <div class="nav-links">
-    <a href="https://github.com/matejselko/Lyra" class="nav-link" id="github-link" target="_blank">GitHub</a>
-  </div>
-</nav>
+<main>
+  <section class="hero">
+    <h2>Do these fingerprints match?</h2>
+    <p>Paste two PGP, SSH, or hex fingerprints. Lyra compares them character by character and shows exactly where they differ.</p>
+  </section>
 
-<div class="main-wrap">
-  <p class="hero-eyebrow">Offline · Local-only · No data ever leaves your browser</p>
-  <h1 class="hero-title">Fingerprint Verifier</h1>
-  <p class="hero-sub">Paste two PGP key fingerprints, SSH key fingerprints, or any hex/text identifiers below to verify they match — character by character, with every difference highlighted.</p>
-
-  <div class="compare-card">
-    <div class="compare-grid">
-      <div class="fp-col">
-        <div class="fp-label">Fingerprint A <small>yours / expected</small></div>
-        <textarea class="fp-textarea" id="fp-a" placeholder="e.g. 9F2C 8A41 0E7B 3D5F&#10;1A6C 4B89 2E0D 7F31 5C92 A8B4" spellcheck="false" autocomplete="off"></textarea>
-        <div class="fp-meta">
-          <span id="meta-a-len">0 characters</span>
-        </div>
+  <section class="card">
+    <div class="fields">
+      <div>
+        <div class="field"><textarea id="fa" placeholder=" " spellcheck="false" autocomplete="off"></textarea><label for="fa">Fingerprint A</label></div>
+        <div class="sup"><span>Yours or expected</span><span id="ca">0 characters</span></div>
       </div>
-      <div class="fp-col">
-        <div class="fp-label">Fingerprint B <small>received / to verify</small></div>
-        <textarea class="fp-textarea" id="fp-b" placeholder="e.g. 9F2C8A410E7B3D5F1A6C4B892E0D7F315C92A8B4" spellcheck="false" autocomplete="off"></textarea>
-        <div class="fp-meta">
-          <span id="meta-b-len">0 characters</span>
-        </div>
+      <div>
+        <div class="field"><textarea id="fb" placeholder=" " spellcheck="false" autocomplete="off"></textarea><label for="fb">Fingerprint B</label></div>
+        <div class="sup"><span>Received or to verify</span><span id="cb">0 characters</span></div>
       </div>
     </div>
-
-    <div class="options-row">
-      <label class="opt-toggle">
-        <input type="checkbox" id="opt-case" checked/>
-        <span class="opt-switch"></span>
-        Ignore case
-      </label>
-      <label class="opt-toggle">
-        <input type="checkbox" id="opt-whitespace" checked/>
-        <span class="opt-switch"></span>
-        Ignore spaces / formatting
-      </label>
-      <label class="opt-toggle">
-        <input type="checkbox" id="opt-prefix" checked/>
-        <span class="opt-switch"></span>
-        Strip 0x / common prefixes
-      </label>
+    <div class="chips" role="group" aria-label="Normalisation">
+      <button class="chip rip" data-o="case" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Ignore case</button>
+      <button class="chip rip" data-o="ws" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Ignore spaces and separators</button>
+      <button class="chip rip" data-o="pre" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Strip prefixes</button>
     </div>
-
-    <div class="compare-actions">
-      <button class="btn-clear" onclick="clearAll()">Clear</button>
-      <button class="btn-compare" onclick="compareFingerprints()">Compare Fingerprints</button>
+    <div class="acts">
+      <button class="btn text rip" id="clear">Clear</button>
+      <button class="btn fill rip" id="go"><svg viewBox="0 0 24 24"><path d="M9.01 14H2v2h7.01v3L13 15l-3.99-4v3zm5.98-1v-3H22V8h-7.01V5L11 9l3.99 4z"/></svg>Compare</button>
     </div>
+  </section>
+
+  <section class="res" id="res" hidden aria-live="polite"></section>
+</main>
+<footer>Nothing you paste leaves this page. Press Ctrl+Enter to compare.</footer>
+
+<dialog id="dlg" aria-labelledby="dt">
+  <h3 id="dt">Appearance</h3>
+  <h4>Colour</h4>
+  <div class="sws" role="radiogroup" aria-label="Colour scheme" id="sws"></div>
+  <h4>Mode</h4>
+  <div class="seg" role="radiogroup" aria-label="Mode">
+    <button class="rip" role="radio" data-m="light"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Light</button>
+    <button class="rip" role="radio" data-m="auto"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Auto</button>
+    <button class="rip" role="radio" data-m="dark"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>Dark</button>
   </div>
-
-  <div class="result-panel" id="result-panel">
-    <div class="result-inner" id="result-inner">
-      <div class="result-header">
-        <div class="result-icon" id="result-icon"></div>
-        <div>
-          <div class="result-title" id="result-title"></div>
-          <div class="result-sub" id="result-sub"></div>
-        </div>
-      </div>
-
-      <div class="stat-row" id="stat-row"></div>
-
-      <div class="diff-section" id="diff-section" style="display:none">
-        <div class="diff-label">Character-by-character comparison</div>
-        <div class="diff-display" id="diff-display"></div>
-        <div class="diff-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:rgba(255,107,107,.5)"></div>Mismatch</div>
-          <div class="legend-item"><div class="legend-dot" style="background:rgba(251,191,36,.5)"></div>Extra / Missing</div>
-          <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,.15)"></div>Match</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="info-strip">
-    <div class="info-card">
-      <span class="info-icon">🔒</span>
-      <div class="info-title">100% Local</div>
-      <div class="info-desc">All comparison happens in your browser. Nothing is sent anywhere, ever.</div>
-    </div>
-    <div class="info-card">
-      <span class="info-icon">⚡</span>
-      <div class="info-title">Smart Normalisation</div>
-      <div class="info-desc">Strips spaces, handles case differences, and ignores common prefixes automatically.</div>
-    </div>
-    <div class="info-card">
-      <span class="info-icon">🔍</span>
-      <div class="info-title">Exact Diff</div>
-      <div class="info-desc">See precisely which characters differ and where — no guessing.</div>
-    </div>
-  </div>
-</div>
-
-<footer>Lyra Fingerprint Verifier — self-hosted, open source</footer>
+  <div style="display:flex;justify-content:flex-end"><button class="btn text rip" id="close">Done</button></div>
+</dialog>
+<div class="snack" id="snack" role="status"></div>
 
 <script>
 'use strict';
+const $=i=>document.getElementById(i),root=document.documentElement;
+const SCH=[['green','Green','#386A20','#B8F397'],['blue','Blue','#415F91','#D6E3FF'],['red','Red','#904A45','#FFDAD6'],['purple','Purple','#6750A4','#EADDFF'],['orange','Orange','#8B5000','#FFDCBE']];
+const store={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let scheme=store.get('lyra-scheme','green'),mode=store.get('lyra-mode','auto');
+if(!SCH.some(s=>s[0]===scheme))scheme='green';
+if(!['light','auto','dark'].includes(mode))mode='auto';
+const mq=matchMedia('(prefers-color-scheme: dark)');
 
-// ── STARS — SVG SMIL, zero flicker ──────────────────────────────────────────
-(function buildStars(){
-  const svg = document.getElementById('star-svg');
-  if(!svg) return;
-  const W = innerWidth, H = innerHeight;
-  const n = Math.min(Math.floor(W * H / 7000), 150);
-  const ns = 'http://www.w3.org/2000/svg';
-  const frag = document.createDocumentFragment();
-  for(let i = 0; i < n; i++){
-    const c = document.createElementNS(ns, 'circle');
-    const x = (Math.random() * W).toFixed(1);
-    const y = (Math.random() * H).toFixed(1);
-    const r = (Math.random() * 0.9 + 0.3).toFixed(2);
-    const dur = (Math.random() * 7 + 3).toFixed(1) + 's';
-    const beg = '-' + (Math.random() * 9).toFixed(1) + 's';
-    const peak = (Math.random() * 0.55 + 0.15).toFixed(2);
-    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', r);
-    c.setAttribute('fill', '#fff'); c.setAttribute('opacity', '0.05');
-    const anim = document.createElementNS(ns, 'animate');
-    anim.setAttribute('attributeName', 'opacity');
-    anim.setAttribute('values', `0.05;${peak};0.05`);
-    anim.setAttribute('dur', dur);
-    anim.setAttribute('begin', beg);
-    anim.setAttribute('repeatCount', 'indefinite');
-    anim.setAttribute('calcMode', 'spline');
-    anim.setAttribute('keySplines', '0.4 0 0.6 1;0.4 0 0.6 1');
-    c.appendChild(anim);
-    frag.appendChild(c);
-  }
-  svg.appendChild(frag);
-})();
+$('sws').innerHTML=SCH.map(s=>`<button class="sw rip" role="radio" data-s="${s[0]}" style="--c1:${s[2]};--c2:${s[3]}"><i></i>${s[1]}</button>`).join('');
 
-// Pause stars while typing — avoids any possible flicker interplay
-document.addEventListener('focusin', e => {
-  if(e.target.matches('textarea,input')) { try{ document.getElementById('star-svg')?.pauseAnimations(); }catch(_){} }
+function apply(){
+  root.dataset.scheme=scheme;
+  root.dataset.mode=(mode==='dark'||(mode==='auto'&&mq.matches))?'dark':'light';
+  document.querySelectorAll('[data-s]').forEach(b=>b.setAttribute('aria-checked',b.dataset.s===scheme));
+  document.querySelectorAll('[data-m]').forEach(b=>b.setAttribute('aria-checked',b.dataset.m===mode));
+  $('tc').content=getComputedStyle(root).getPropertyValue('--bg').trim();
+}
+mq.addEventListener('change',apply);
+document.addEventListener('click',e=>{
+  const s=e.target.closest('[data-s]'),m=e.target.closest('[data-m]');
+  if(s){scheme=s.dataset.s;store.set('lyra-scheme',scheme);apply()}
+  if(m){mode=m.dataset.m;store.set('lyra-mode',mode);apply()}
 });
-document.addEventListener('focusout', e => {
-  if(e.target.matches('textarea,input')) { try{ document.getElementById('star-svg')?.unpauseAnimations(); }catch(_){} }
+$('open-theme').onclick=()=>$('dlg').showModal();
+$('close').onclick=()=>$('dlg').close();
+$('dlg').addEventListener('click',e=>{if(e.target===$('dlg'))$('dlg').close()});
+apply();
+
+document.addEventListener('pointerdown',e=>{
+  const t=e.target.closest('.rip');if(!t)return;
+  const r=t.getBoundingClientRect(),d=Math.max(r.width,r.height)*2.2,s=document.createElement('span');
+  s.className='ripple';
+  s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;
+  t.appendChild(s);s.addEventListener('animationend',()=>s.remove());
 });
 
-// ── Set GitHub link if known ──────────────────────────────────────────────
-document.getElementById('github-link').href = 'https://github.com/';
+let st;
+function snack(msg){const n=$('snack');n.textContent=msg;n.classList.add('show');clearTimeout(st);st=setTimeout(()=>n.classList.remove('show'),2800)}
 
-// ── LIVE CHARACTER COUNTS ───────────────────────────────────────────────────
-const taA = document.getElementById('fp-a');
-const taB = document.getElementById('fp-b');
-taA.addEventListener('input', () => {
-  document.getElementById('meta-a-len').textContent = `${taA.value.length} character${taA.value.length===1?'':'s'}`;
-});
-taB.addEventListener('input', () => {
-  document.getElementById('meta-b-len').textContent = `${taB.value.length} character${taB.value.length===1?'':'s'}`;
-});
+const opts={case:true,ws:true,pre:true};
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{opts[c.dataset.o]=!opts[c.dataset.o];c.setAttribute('aria-pressed',opts[c.dataset.o])}));
+function norm(s,ci=opts.case){
+  s=s.trim();
+  if(opts.pre)s=s.replace(/^0x/i,'').replace(/^(sha256|sha1|md5):/i,'').replace(/^fingerprint:?\s*/i,'');
+  if(opts.ws)s=s.replace(/[\s:\-]+/g,'');
+  return ci?s.toLowerCase():s;
+}
+function lcs(a,b){
+  const m=a.length,n=b.length,dp=Array.from({length:m+1},()=>new Uint16Array(n+1));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]+1:Math.max(dp[i-1][j],dp[i][j-1]);
+  const ops=[];let i=m,j=n;
+  while(i>0&&j>0){if(a[i-1]===b[j-1]){ops.unshift({t:'s',c:a[i-1]});i--;j--}else if(dp[i-1][j]>=dp[i][j-1]){ops.unshift({t:'a',c:a[i-1]});i--}else{ops.unshift({t:'b',c:b[j-1]});j--}}
+  while(i>0){ops.unshift({t:'a',c:a[i-1]});i--}
+  while(j>0){ops.unshift({t:'b',c:b[j-1]});j--}
+  const cols=[];
+  for(let k=0;k<ops.length;k++){
+    const o=ops[k],n2=ops[k+1];
+    if(o.t!=='s'&&n2&&n2.t!=='s'&&n2.t!==o.t){cols.push({a:o.t==='a'?o.c:n2.c,b:o.t==='b'?o.c:n2.c,d:1});k++}
+    else cols.push({a:o.t==='b'?null:o.c,b:o.t==='a'?null:o.c,d:o.t==='s'?0:1});
+  }
+  return cols;
+}
+const esc=c=>String(c).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+const tile=(n,l,s='')=>`<div class="st"><b data-n="${n}" data-s="${s}">${n}${s}</b><span>${l}</span></div>`;
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function split(el,step,delay){if(!el)return;el.innerHTML=el.textContent.trim().split(/\s+/).map((w,i)=>`<span class="w" style="--i:${i};--s:${step}ms;--d:${delay}ms">${esc(w)}</span>`).join(' ')}
+function countUp(root){root.querySelectorAll('[data-n]').forEach(el=>{const n=+el.dataset.n,s=el.dataset.s||'';if(still||!n){el.textContent=n+s;return}el.textContent='0'+s;const t0=performance.now()+450;(function f(t){const k=Math.min(Math.max((t-t0)/800,0),1);el.textContent=Math.round(n*(1-Math.pow(1-k,3)))+s;if(k<1)requestAnimationFrame(f)})(performance.now())})}
+split(document.querySelector('.hero h2'),70,100);split(document.querySelector('.hero p'),18,450);
 
-// ── NORMALISATION ────────────────────────────────────────────────────────────
-function normalise(str, opts) {
-  let s = str;
-  if (opts.prefix) {
-    s = s.replace(/^0x/i, '');
-    s = s.replace(/^(sha256|sha1|md5):/i, '');
-    s = s.replace(/^fingerprint:?\s*/i, '');
+function compare(){
+  const A=$('fa').value,B=$('fb').value,a=norm(A),b=norm(B);
+  if(!a||!b){snack('Enter both fingerprints to compare');return}
+  const ok=a===b,r=$('res');
+  let h;
+  if(ok){
+    const caseOnly=opts.case&&norm(A,false)!==norm(B,false);
+    h=`<div class="rh"><div class="ri"><svg viewBox="0 0 24 24"><path class="dr" pathLength="1" d="M5 12.5l4.5 4.5L19 7"/></svg></div><div><h3>Fingerprints match</h3><p>${a.length} characters compared, identical after normalisation.</p></div></div>
+    <div class="sts">${tile(100,'Match','%')}${tile(a.length,'Characters')}${tile(0,'Differences')}</div>
+    ${caseOnly?'<p class="note">These only match because Ignore case is on. Hex fingerprints are case-insensitive, but base64 ones (SSH SHA256) are not. Turn Ignore case off for a strict check.</p>':''}`;
+  }else{
+    const cols=lcs(a,b),diffs=cols.filter(c=>c.d).length,len=Math.max(a.length,b.length);
+    const pct=Math.round((cols.length-diffs)/Math.max(cols.length,1)*100);
+    const dc=cols.map((c,i)=>`<span class="col" style="--i:${Math.min(i,40)}"><b class="${c.a==null?'gap':c.d?'da':'same'}">${c.a==null?'·':esc(c.a)}</b><b class="${c.b==null?'gap':c.d?'db':'same'}">${c.b==null?'·':esc(c.b)}</b></span>`).join('');
+    h=`<div class="rh"><div class="ri"><svg viewBox="0 0 24 24"><path class="dr" pathLength="1" d="M6 6l12 12M18 6L6 18"/></svg></div><div><h3>Fingerprints don’t match</h3><p>${diffs} difference${diffs===1?'':'s'} found across ${len} characters.</p></div></div>
+    <div class="sts">${tile(pct,'Similarity','%')}${tile(len,'Characters')}${tile(diffs,'Differences')}</div>
+    <div class="dif"><h4>Top row is A, bottom row is B</h4><div>${dc}</div>
+    <div class="leg"><span><i style="background:var(--err-c)"></i>Differs in A</span><span><i style="background:var(--pc)"></i>Differs in B</span><span><i style="background:var(--ol)"></i>Missing</span></div></div>`;
   }
-  if (opts.whitespace) {
-    s = s.replace(/[\s:\-]+/g, '');
-  }
-  if (opts.case) {
-    s = s.toLowerCase();
-  }
-  return s;
+  r.className='res '+(ok?'ok':'bad');r.innerHTML=h;r.hidden=false;
+  r.style.animation='none';void r.offsetWidth;r.style.animation='';
+  split(r.querySelector('h3'),55,350);split(r.querySelector('.rh p'),16,560);countUp(r);
+  r.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-// ── DIFF ALGORITHM — LCS-based diff for clear visual alignment ──────────────
-function computeDiff(a, b) {
-  const m = a.length, n = b.length;
-  const dp = Array.from({length: m+1}, () => new Uint16Array(n+1));
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
-    }
-  }
-  const ops = [];
-  let i = m, j = n;
-  while (i > 0 && j > 0) {
-    if (a[i-1] === b[j-1]) {
-      ops.unshift({type: 'same', a: a[i-1], b: b[j-1]});
-      i--; j--;
-    } else if (dp[i-1][j] >= dp[i][j-1]) {
-      ops.unshift({type: 'del', a: a[i-1], b: null});
-      i--;
-    } else {
-      ops.unshift({type: 'ins', a: null, b: b[j-1]});
-      j--;
-    }
-  }
-  while (i > 0) { ops.unshift({type:'del', a:a[i-1], b:null}); i--; }
-  while (j > 0) { ops.unshift({type:'ins', a:null, b:b[j-1]}); j--; }
-  return ops;
-}
-
-// ── MAIN COMPARE ─────────────────────────────────────────────────────────────
-function compareFingerprints() {
-  const rawA = taA.value.trim();
-  const rawB = taB.value.trim();
-
-  if (!rawA || !rawB) {
-    showToastLike('Enter both fingerprints to compare');
-    return;
-  }
-
-  const opts = {
-    case: document.getElementById('opt-case').checked,
-    whitespace: document.getElementById('opt-whitespace').checked,
-    prefix: document.getElementById('opt-prefix').checked,
-  };
-
-  const normA = normalise(rawA, opts);
-  const normB = normalise(rawB, opts);
-
-  const isMatch = normA === normB;
-  const panel = document.getElementById('result-panel');
-  const inner = document.getElementById('result-inner');
-  const icon  = document.getElementById('result-icon');
-  const title = document.getElementById('result-title');
-  const sub   = document.getElementById('result-sub');
-  const statRow = document.getElementById('stat-row');
-  const diffSection = document.getElementById('diff-section');
-  const diffDisplay = document.getElementById('diff-display');
-
-  // Clear old burst particles
-  inner.querySelectorAll('.burst-particle').forEach(p => p.remove());
-
-  inner.className = 'result-inner ' + (isMatch ? 'match' : 'nomatch');
-  icon.className  = 'result-icon ' + (isMatch ? 'match' : 'nomatch');
-  title.className = 'result-title ' + (isMatch ? 'match' : 'nomatch');
-
-  // Force re-trigger of icon animation
-  icon.style.animation = 'none'; icon.offsetHeight; icon.style.animation = '';
-
-  if (isMatch) {
-    icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-    title.textContent = 'Fingerprints Match';
-    sub.textContent = `${normA.length} characters compared — identical after normalisation`;
-    diffSection.style.display = 'none';
-    statRow.innerHTML = `
-      <div class="stat-box"><div class="stat-num green">100%</div><div class="stat-name">Match</div></div>
-      <div class="stat-box"><div class="stat-num green">${normA.length}</div><div class="stat-name">Characters</div></div>
-      <div class="stat-box"><div class="stat-num green">0</div><div class="stat-name">Differences</div></div>
-    `;
-    spawnBurst(inner, true);
-  } else {
-    icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff8a8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-    title.textContent = 'Fingerprints Do NOT Match';
-
-    const ops = computeDiff(normA, normB);
-    const mismatches = ops.filter(o => o.type !== 'same').length;
-    const matchPct = Math.round((ops.filter(o => o.type === 'same').length / Math.max(normA.length, normB.length, 1)) * 100);
-
-    sub.textContent = `${mismatches} difference${mismatches===1?'':'s'} found across ${Math.max(normA.length,normB.length)} characters`;
-
-    diffSection.style.display = 'block';
-    diffDisplay.innerHTML = ops.map(op => {
-      if (op.type === 'same') return `<span class="diff-char same">${escHtml(op.a)}</span>`;
-      if (op.type === 'del')  return `<span class="diff-char diff-a" title="Only in A">${escHtml(op.a)}</span>`;
-      return `<span class="diff-char diff-b" title="Only in B">${escHtml(op.b)}</span>`;
-    }).join('');
-
-    statRow.innerHTML = `
-      <div class="stat-box"><div class="stat-num red">${matchPct}%</div><div class="stat-name">Similarity</div></div>
-      <div class="stat-box"><div class="stat-num red">${mismatches}</div><div class="stat-name">Differences</div></div>
-      <div class="stat-box"><div class="stat-num red">${Math.max(normA.length,normB.length)}</div><div class="stat-name">Total Length</div></div>
-    `;
-  }
-
-  panel.classList.add('show');
-  setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
-}
-
-function spawnBurst(container, isGreen) {
-  const colors = isGreen ? ['#34d399','#6ee7b7','#a7f3d0'] : ['#ff6b6b','#ff8a8a','#ffb3b3'];
-  const cx = 46/2 + 32, cy = 46/2 + 32;
-  for (let i = 0; i < 16; i++) {
-    const p = document.createElement('div');
-    p.className = 'burst-particle';
-    const angle = (i/16) * Math.PI * 2;
-    const dist = 50 + Math.random()*40;
-    p.style.left = cx + 'px';
-    p.style.top  = cy + 'px';
-    p.style.background = colors[i % colors.length];
-    p.style.setProperty('--tx', (Math.cos(angle)*dist).toFixed(1)+'px');
-    p.style.setProperty('--ty', (Math.sin(angle)*dist).toFixed(1)+'px');
-    p.style.animationDelay = (Math.random()*0.15).toFixed(2)+'s';
-    container.appendChild(p);
-    setTimeout(() => p.remove(), 1100);
-  }
-}
-
-function clearAll() {
-  taA.value = ''; taB.value = '';
-  document.getElementById('meta-a-len').textContent = '0 characters';
-  document.getElementById('meta-b-len').textContent = '0 characters';
-  document.getElementById('result-panel').classList.remove('show');
-  taA.focus();
-}
-
-function escHtml(c) {
-  if (c === undefined || c === null) return '';
-  return String(c).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-}
-
-let _toastEl = null;
-function showToastLike(msg) {
-  if (_toastEl) _toastEl.remove();
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:1.6rem;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.17);backdrop-filter:blur(20px);border-radius:28px;padding:.54rem 1.3rem;font-size:.8rem;color:#fff;z-index:9999;animation:popIn .25s ease';
-  document.body.appendChild(t);
-  _toastEl = t;
-  setTimeout(() => { t.remove(); _toastEl = null; }, 2400);
-}
-
-[taA, taB].forEach(ta => {
-  ta.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      compareFingerprints();
-    }
-  });
-});
+const count=(id,ta)=>{const n=norm($(ta).value,false).length;$(id).textContent=n+(n===1?' character':' characters')};
+[['ca','fa'],['cb','fb']].forEach(([c,t])=>$(t).addEventListener('input',()=>count(c,t)));
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{count('ca','fa');count('cb','fb')}));
+$('go').onclick=compare;
+$('clear').onclick=()=>{$('fa').value='';$('fb').value='';count('ca','fa');count('cb','fb');$('res').hidden=true;$('fa').focus()};
+[$('fa'),$('fb')].forEach(t=>t.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();compare()}}));
 </script>
 </body>
 </html>
-
